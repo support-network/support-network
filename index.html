@@ -8,17 +8,235 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { background-color: #020617; color: #f8fafc; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+    </style>
 </head>
-<body class="bg-slate-950">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
-        // СЮДА ВСТАВЬ ВЕСЬ КОД REACT-ПРИЛОЖЕНИЯ, КОТОРЫЙ Я ДАЛ ВЫШЕ
-        // (Только не забудь заменить конфиг Firebase на свой из консоли Google)
-        
+        // Твой конфиг уже здесь
+        const firebaseConfig = {
+            apiKey: "AIzaSyCRLd-2PXRjkL6f59dEplWadvsRuUBHDmY",
+            authDomain: "support-network-33699.firebaseapp.com",
+            projectId: "support-network-33699",
+            storageBucket: "support-network-33699.firebasestorage.app",
+            messagingSenderId: "541408271881",
+            appId: "1:541408271881:web:588b8eb4e93b102a0de2d8"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const appId = "support-v1";
+
         const { useState, useEffect, useRef } = React;
-        // ... остальной код ...
-        
+        const { MessageSquare, Send, User, Shield, Home, Search, UserPlus, LogOut, ChevronRight, Mail, Lock, Hash, Users } = window.lucide ? window.lucide : {
+            // Фолбэк если иконки не подгрузятся (заглушки)
+            MessageSquare: () => "💬", Send: () => "✈️", User: () => "👤", Shield: () => "🛡️", 
+            Home: () => "🏠", Search: () => "🔍", UserPlus: () => "➕", LogOut: () => "🚪",
+            ChevronRight: () => ">", Mail: () => "📧", Lock: () => "🔒", Hash: () => "#", Users: () => "👥"
+        };
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [profile, setProfile] = useState(null);
+            const [view, setView] = useState('home');
+            const [authMode, setAuthMode] = useState('login');
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(true);
+            const [news, setNews] = useState([]);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [searchResults, setSearchResults] = useState([]);
+            const [myChats, setMyChats] = useState([]);
+            const [activeChat, setActiveChat] = useState(null);
+            const [messages, setMessages] = useState([]);
+            const [newMessage, setNewMessage] = useState('');
+            const scrollRef = useRef(null);
+
+            useEffect(() => {
+                const unsub = auth.onAuthStateChanged(async (u) => {
+                    if (u) {
+                        setUser(u);
+                        const docRef = db.collection('users').doc(u.uid);
+                        const snap = await docRef.get();
+                        if (snap.exists) setProfile(snap.data());
+                    } else { setUser(null); setProfile(null); }
+                    setLoading(false);
+                });
+                return unsub;
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const unsub = db.collection('news').orderBy('createdAt', 'desc').onSnapshot(s => 
+                    setNews(s.docs.map(d => ({id: d.id, ...d.data()})))
+                );
+                return unsub;
+            }, [user]);
+
+            useEffect(() => {
+                if (!user) return;
+                const unsub = db.collection('chats').where('participants', 'array-contains', user.uid)
+                    .onSnapshot(s => setMyChats(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                return unsub;
+            }, [user]);
+
+            useEffect(() => {
+                if (!activeChat) return;
+                const unsub = db.collection('chats').doc(activeChat.id).collection('messages')
+                    .orderBy('createdAt', 'asc').onSnapshot(s => {
+                        setMessages(s.docs.map(d => ({id: d.id, ...d.data()})));
+                        setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                    });
+                return unsub;
+            }, [activeChat]);
+
+            const handleAuth = async (e) => {
+                e.preventDefault();
+                try {
+                    if (authMode === 'register') {
+                        const res = await auth.createUserWithEmailAndPassword(email, password);
+                        const newProf = { uid: res.user.uid, email, name: email.split('@')[0], 
+                            photoURL: `https://api.dicebear.com/7.x/identicon/svg?seed=${res.user.uid}`, role: 'user' };
+                        await db.collection('users').doc(res.user.uid).set(newProf);
+                        setProfile(newProf);
+                    } else { await auth.signInWithEmailAndPassword(email, password); }
+                } catch (err) { alert(err.message); }
+            };
+
+            const startChat = async (target) => {
+                const id = [user.uid, target.uid].sort().join('_');
+                await db.collection('chats').doc(id).set({
+                    id, participants: [user.uid, target.uid],
+                    participantDetails: { 
+                        [user.uid]: { name: profile.name, photo: profile.photoURL },
+                        [target.uid]: { name: target.name, photo: target.photoURL }
+                    },
+                    lastUpdate: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                setActiveChat({ id, ...target });
+                setView('messages');
+            };
+
+            if (loading) return <div className="h-screen flex items-center justify-center text-blue-500">Загрузка...</div>;
+
+            if (!user) return (
+                <div className="h-screen flex items-center justify-center bg-slate-950 p-4">
+                    <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+                        <h2 className="text-2xl font-bold text-center mb-8 text-white">{authMode === 'login' ? 'Вход' : 'Регистрация'}</h2>
+                        <form onSubmit={handleAuth} className="space-y-4">
+                            <input type="email" placeholder="Email" className="w-full bg-slate-800 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={email} onChange={e => setEmail(e.target.value)} />
+                            <input type="password" placeholder="Пароль" className="w-full bg-slate-800 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" value={password} onChange={e => setPassword(e.target.value)} />
+                            <button className="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">{authMode === 'login' ? 'Войти' : 'Создать аккаунт'}</button>
+                        </form>
+                        <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="w-full mt-4 text-sm text-slate-400">
+                            {authMode === 'login' ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти'}
+                        </button>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="flex h-screen bg-slate-950">
+                    <nav className="w-20 md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col p-4">
+                        <div className="text-blue-500 font-bold text-xl mb-10 text-center md:text-left">HELP NET</div>
+                        <div className="flex-1 space-y-2">
+                            <button onClick={() => setView('home')} className={`w-full flex p-3 rounded-xl gap-3 ${view === 'home' ? 'bg-blue-600' : ''}`}>🏠 <span className="hidden md:block">Главная</span></button>
+                            <button onClick={() => setView('search')} className={`w-full flex p-3 rounded-xl gap-3 ${view === 'search' ? 'bg-blue-600' : ''}`}>🔍 <span className="hidden md:block">Поиск</span></button>
+                            <button onClick={() => setView('messages')} className={`w-full flex p-3 rounded-xl gap-3 ${view === 'messages' ? 'bg-blue-600' : ''}`}>💬 <span className="hidden md:block">Чаты</span></button>
+                        </div>
+                        <button onClick={() => auth.signOut()} className="p-3 text-red-400 flex gap-3">🚪 <span className="hidden md:block">Выйти</span></button>
+                    </nav>
+
+                    <main className="flex-1 overflow-y-auto p-4 md:p-10">
+                        {view === 'home' && (
+                            <div className="max-w-2xl mx-auto space-y-6">
+                                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 rounded-3xl">
+                                    <h1 className="text-2xl font-bold">Привет, {profile?.name}!</h1>
+                                    <p className="opacity-80">Тут будут новости системы.</p>
+                                </div>
+                                {news.length === 0 && <p className="text-slate-500 text-center">Новостей пока нет.</p>}
+                                {news.map(n => <div key={n.id} className="bg-slate-900 p-6 rounded-2xl border border-slate-800">{n.text}</div>)}
+                            </div>
+                        )}
+
+                        {view === 'search' && (
+                            <div className="max-w-2xl mx-auto">
+                                <div className="flex gap-2 mb-6">
+                                    <input className="flex-1 bg-slate-900 p-3 rounded-xl border border-slate-800" placeholder="Поиск людей..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                                    <button onClick={async () => {
+                                        const s = await db.collection('users').where('name', '>=', searchQuery).get();
+                                        setSearchResults(s.docs.map(d => d.data()).filter(u => u.uid !== user.uid));
+                                    }} className="bg-blue-600 px-6 rounded-xl">Найти</button>
+                                </div>
+                                <div className="space-y-3">
+                                    {searchResults.map(u => (
+                                        <div key={u.uid} className="bg-slate-900 p-4 rounded-xl flex justify-between items-center border border-slate-800">
+                                            <div className="flex items-center gap-3">
+                                                <img src={u.photoURL} className="w-10 h-10 rounded-full" />
+                                                <span>{u.name}</span>
+                                            </div>
+                                            <button onClick={() => startChat(u)} className="text-blue-500">Написать</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'messages' && (
+                            <div className="flex h-full gap-4 overflow-hidden">
+                                <div className="w-full md:w-64 space-y-2 overflow-y-auto custom-scroll">
+                                    {myChats.map(c => {
+                                        const otherId = c.participants.find(id => id !== user.uid);
+                                        const other = c.participantDetails[otherId];
+                                        return (
+                                            <div key={c.id} onClick={() => setActiveChat({id: c.id, ...other})} className={`p-4 rounded-xl cursor-pointer ${activeChat?.id === c.id ? 'bg-blue-600' : 'bg-slate-900'}`}>
+                                                <p className="font-bold text-sm truncate">{other.name}</p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="hidden md:flex flex-1 flex-col bg-slate-900 rounded-3xl overflow-hidden">
+                                    {activeChat ? (
+                                        <>
+                                            <div className="p-4 border-b border-slate-800 font-bold">{activeChat.name}</div>
+                                            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scroll">
+                                                {messages.map((m, i) => (
+                                                    <div key={i} className={`flex ${m.senderId === user.uid ? 'justify-end' : 'justify-start'}`}>
+                                                        <div className={`p-3 rounded-2xl max-w-[80%] ${m.senderId === user.uid ? 'bg-blue-600' : 'bg-slate-800'}`}>{m.text}</div>
+                                                    </div>
+                                                ))}
+                                                <div ref={scrollRef} />
+                                            </div>
+                                            <form onSubmit={async (e) => {
+                                                e.preventDefault();
+                                                if (!newMessage.trim()) return;
+                                                await db.collection('chats').doc(activeChat.id).collection('messages').add({
+                                                    text: newMessage, senderId: user.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                                });
+                                                setNewMessage('');
+                                            }} className="p-4 flex gap-2">
+                                                <input className="flex-1 bg-slate-800 p-2 rounded-xl" value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Сообщение..." />
+                                                <button className="bg-blue-600 p-2 rounded-xl">Отправить</button>
+                                            </form>
+                                        </>
+                                    ) : <div className="m-auto text-slate-500">Выберите чат</div>}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
