@@ -1,4 +1,4 @@
-// Сохраняем компоненты в window
+// Компонент ролей (Админ - красный, Модер - оранжевый)
 window.RoleBadge = ({ role }) => {
   const styles = {
     admin: "text-red-500 bg-red-500/10 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]",
@@ -14,6 +14,7 @@ window.RoleBadge = ({ role }) => {
   );
 };
 
+// Кнопка меню
 window.NavBtn = ({ active, onClick, icon, label }) => (
   <button 
     onClick={onClick}
