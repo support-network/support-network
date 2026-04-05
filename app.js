@@ -1,6 +1,5 @@
-// ВАЖНО: УДАЛИ ВСЕ СТРОКИ IMPORT В НАЧАЛЕ ФАЙЛА!
 const { useState, useEffect } = React;
-const { Home, ShieldCheck, Settings, LogOut, Heart } = Lucide; // Если используешь Lucide через CDN
+const { Home, ShieldCheck, Settings, LogOut, Heart } = Lucide; 
 
 function App() {
   const [user, setUser] = useState(null);
@@ -12,7 +11,7 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Используем window.auth и window.db
+    // Используем window.auth и window.db из config.js
     const unsub = window.auth.onAuthStateChanged(async (u) => {
       if (u) {
         setUser(u);
@@ -72,7 +71,7 @@ function App() {
       <main className="flex-1 overflow-y-auto p-12">
         <div className="max-w-3xl mx-auto">
           {view === 'home' && (
-            <div className="space-y-8">
+            <div className="space-y-8 animate-in fade-in">
               <h2 className="text-4xl font-black italic uppercase text-white tracking-tighter mb-10">Новости</h2>
               {profile.role === 'admin' && (
                 <div className="bg-slate-900/80 p-6 rounded-[2rem] border border-blue-500/20 shadow-xl">
@@ -87,7 +86,7 @@ function App() {
                 </div>
               )}
               {news.map(n => (
-                <article key={n.id} className="bg-slate-900/40 p-8 rounded-[2.5rem] border border-white/5">
+                <article key={n.id} className="bg-slate-900/40 p-8 rounded-[2.5rem] border border-white/5 transition-all hover:bg-slate-900/60">
                   <p className="text-slate-300 leading-relaxed text-lg mb-6">{n.text}</p>
                   <div className="flex items-center gap-4 pt-4 border-t border-white/5">
                     <span className="text-[10px] uppercase font-black text-slate-600 italic">Автор: {n.author}</span>
@@ -98,7 +97,7 @@ function App() {
           )}
 
           {view === 'admin' && (
-            <div className="space-y-8">
+            <div className="space-y-8 animate-in fade-in">
               <h2 className="text-4xl font-black italic uppercase text-red-500 mb-10">Админка</h2>
               <div className="grid gap-4">
                 {allUsers.map(u => (
@@ -111,7 +110,7 @@ function App() {
                       </div>
                     </div>
                     <select 
-                      className="bg-slate-950 text-[10px] font-black uppercase p-3 rounded-xl border border-white/10 outline-none text-white"
+                      className="bg-slate-950 text-[10px] font-black uppercase p-3 rounded-xl border border-white/10 outline-none text-white cursor-pointer"
                       value={u.role || 'user'}
                       onChange={(e) => changeUserRole(u.uid, e.target.value)}
                     >
@@ -152,6 +151,6 @@ function App() {
   );
 }
 
-// Рендер приложения
+// Рендерим приложение
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
