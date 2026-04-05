@@ -7,10 +7,12 @@ const firebaseConfig = {
   appId: "1:541408271881:web:588b8eb4e93b102a0de2d8"
 };
 
+// Инициализация
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
+// Глобальные переменные для доступа из других файлов
 window.auth = firebase.auth();
 window.db = firebase.firestore();
 window.appId = 'support-net-v2';
