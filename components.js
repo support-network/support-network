@@ -1,81 +1,28 @@
-// Компонент одного товара в магазине
-const StoreItem = ({ item, isAdmin, onDelete, onBuy }) => (
-    <div className="glass-card rounded-[2.5rem] overflow-hidden flex flex-col group transition-all hover:translate-y-[-5px]">
-        <div className="h-56 bg-slate-800 relative">
-            {item.img ? (
-                <img src={item.img} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={item.title} />
-            ) : (
-                <div className="h-full flex items-center justify-center text-slate-600 italic font-medium">Нет фото</div>
-            )}
-            <div className="absolute top-6 right-6 bg-blue-600 px-5 py-2 rounded-full text-sm font-black shadow-lg shadow-blue-600/40">{item.price} ₽</div>
-        </div>
-        <div className="p-8 flex flex-col flex-1">
-            <h3 className="text-xl font-bold mb-2 text-white">{item.title}</h3>
-            <p className="text-slate-400 text-sm mb-6 line-clamp-3 leading-relaxed">{item.description || 'Описание отсутствует'}</p>
-            <button onClick={() => onBuy(item)} className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-600 hover:text-white transition-all mt-auto">Купить</button>
-            {isAdmin && (
-                <button onClick={() => onDelete(item.id)} className="mt-4 text-[10px] text-red-500 opacity-30 hover:opacity-100 uppercase font-black tracking-tighter">Удалить товар</button>
-            )}
-        </div>
-    </div>
-);
+// Сохраняем компоненты в window
+window.RoleBadge = ({ role }) => {
+  const styles = {
+    admin: "text-red-500 bg-red-500/10 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]",
+    moderator: "text-orange-500 bg-orange-500/10 border-orange-500/20",
+    user: "text-blue-500 bg-blue-500/10 border-blue-500/20"
+  };
+  const labels = { admin: "Администратор", moderator: "Модератор", user: "Участник" };
 
-// Карточка новости
-const NewsCard = ({ news, userId, onLike, isAdmin, onDelete }) => (
-    <div className="glass-card p-8 rounded-[2rem] relative group border border-white/5 hover:border-blue-500/30 transition-all">
-        <p className="text-lg text-slate-200 leading-relaxed font-medium">{news.text}</p>
-        <div className="mt-6 flex items-center gap-4">
-            <button 
-                onClick={() => onLike(news.id)} 
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-bold transition-all ${userId && news.likes?.includes(userId) ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700'}`}
-            >
-                ❤️ {news.likes?.length || 0}
-            </button>
-        </div>
-        {isAdmin && (
-            <button onClick={() => onDelete(news.id)} className="absolute top-8 right-8 text-[10px] text-red-900 opacity-0 group-hover:opacity-100 uppercase font-black hover:text-red-500 transition-all">Удалить</button>
-        )}
-    </div>
-);
-
-// Статус пользователя
-const OnlineStatus = ({ isOnline, hidden }) => {
-    if (hidden) return <span className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Скрыт</span>;
-    return (
-        <div className="flex items-center gap-1.5">
-            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-slate-600'}`}></div>
-            <span className={`text-[10px] uppercase font-black tracking-tighter ${isOnline ? 'text-green-500' : 'text-slate-500'}`}>
-                {isOnline ? 'В сети' : 'Офлайн'}
-            </span>
-        </div>
-    );
+  return (
+    <span className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-tighter ${styles[role] || styles.user}`}>
+      {labels[role] || labels.user}
+    </span>
+  );
 };
 
-// Модальное окно авторизации
-const AuthModal = ({ isOpen, onClose, onAuth }) => {
-    if (!isOpen) return null;
-    const [mode, setMode] = React.useState('login');
-    const [email, setEmail] = React.useState('');
-    const [pass, setPass] = React.useState('');
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md">
-            <div className="w-full max-w-md glass-card p-10 rounded-[2.5rem] relative animate-in fade-in zoom-in duration-300 shadow-2xl border border-white/10">
-                <button onClick={onClose} className="absolute top-6 right-6 text-slate-500 hover:text-white text-3xl transition-colors">&times;</button>
-                <h2 className="text-3xl font-black mb-8 text-center uppercase italic text-blue-500 tracking-tighter">
-                    {mode === 'login' ? 'Вход' : 'Регистрация'}
-                </h2>
-                <form onSubmit={(e) => { e.preventDefault(); onAuth(mode, email, pass); }} className="space-y-4">
-                    <input className="w-full bg-slate-900/50 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all border border-white/5 text-white" placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                    <input className="w-full bg-slate-900/50 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all border border-white/5 text-white" placeholder="Пароль" type="password" value={pass} onChange={e => setPass(e.target.value)} required />
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 py-5 rounded-2xl font-black transition-all shadow-lg shadow-blue-600/40 uppercase tracking-widest text-xs">
-                        {mode === 'login' ? 'Войти в систему' : 'Создать аккаунт'}
-                    </button>
-                </form>
-                <p onClick={() => setMode(mode === 'login' ? 'reg' : 'login')} className="text-center mt-8 text-slate-500 cursor-pointer hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors">
-                    {mode === 'login' ? 'Нет аккаунта? Зарегистрироваться' : 'Уже в системе? Войти'}
-                </p>
-            </div>
-        </div>
-    );
-};
+window.NavBtn = ({ active, onClick, icon, label }) => (
+  <button 
+    onClick={onClick}
+    className={`w-full flex items-center gap-4 p-4 rounded-[1.2rem] transition-all relative group ${
+      active ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40' : 'text-slate-500 hover:bg-white/5 hover:text-slate-200'
+    }`}
+  >
+    <div className={`transition-transform ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
+    <span className="font-black text-[10px] uppercase tracking-widest">{label}</span>
+    {active && <div className="absolute right-4 w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_8px_white]"></div>}
+  </button>
+);
