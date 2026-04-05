@@ -1,4 +1,4 @@
-// Карточка товара в магазине
+// Компонент одного товара в магазине
 const StoreItem = ({ item, isAdmin, onDelete, onBuy }) => (
     <div className="glass-card rounded-[2.5rem] overflow-hidden flex flex-col group transition-all hover:translate-y-[-5px]">
         <div className="h-56 bg-slate-800 relative">
@@ -38,6 +38,19 @@ const NewsCard = ({ news, userId, onLike, isAdmin, onDelete }) => (
     </div>
 );
 
+// Статус пользователя
+const OnlineStatus = ({ isOnline, hidden }) => {
+    if (hidden) return <span className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Скрыт</span>;
+    return (
+        <div className="flex items-center gap-1.5">
+            <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 shadow-[0_0_8px_#22c55e]' : 'bg-slate-600'}`}></div>
+            <span className={`text-[10px] uppercase font-black tracking-tighter ${isOnline ? 'text-green-500' : 'text-slate-500'}`}>
+                {isOnline ? 'В сети' : 'Офлайн'}
+            </span>
+        </div>
+    );
+};
+
 // Модальное окно авторизации
 const AuthModal = ({ isOpen, onClose, onAuth }) => {
     if (!isOpen) return null;
@@ -53,8 +66,8 @@ const AuthModal = ({ isOpen, onClose, onAuth }) => {
                     {mode === 'login' ? 'Вход' : 'Регистрация'}
                 </h2>
                 <form onSubmit={(e) => { e.preventDefault(); onAuth(mode, email, pass); }} className="space-y-4">
-                    <input className="w-full bg-slate-900/50 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all border border-white/5" placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-                    <input className="w-full bg-slate-900/50 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all border border-white/5" placeholder="Пароль" type="password" value={pass} onChange={e => setPass(e.target.value)} required />
+                    <input className="w-full bg-slate-900/50 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all border border-white/5 text-white" placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                    <input className="w-full bg-slate-900/50 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-600 transition-all border border-white/5 text-white" placeholder="Пароль" type="password" value={pass} onChange={e => setPass(e.target.value)} required />
                     <button className="w-full bg-blue-600 hover:bg-blue-700 py-5 rounded-2xl font-black transition-all shadow-lg shadow-blue-600/40 uppercase tracking-widest text-xs">
                         {mode === 'login' ? 'Войти в систему' : 'Создать аккаунт'}
                     </button>
