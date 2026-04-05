@@ -7,8 +7,7 @@ const firebaseConfig = {
     appId: "1:541408271881:web:588b8eb4e93b102a0de2d8"
 };
 
-// Инициализация
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect } = React;
