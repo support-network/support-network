@@ -19,17 +19,30 @@ function App() {
 
     // Загрузка контента
     useEffect(() => {
-        if (!user) return;
-        const u1 = db.collection('news').orderBy('createdAt', 'desc').onSnapshot(s => setNews(s.docs.map(d => ({id: d.id, ...d.data()}))));
-        const u2 = db.collection('items').onSnapshot(s => setItems(s.docs.map(d => ({id: d.id, ...d.data()}))));
-        return () => { u1(); u2(); };
-    }, [user]);
+    const handleAuth = async (mode, email, pass) => {
+        try {
+            if (mode === 'login') {
+                await auth.signInWithEmailAndPassword(email, pass);
+            } else {
+                const res = await auth.createUserWithEmailAndPassword(email, pass);
+                // Создаем профиль в Firestore для нового пользователя
+                await db.collection('users').doc(res.user.uid).set({
+                    uid: res.user.uid,
+                    email: email,
+                    name: email.split('@')[0],
+                    photoURL: `https://api.dicebear.com/7.x/identicon/svg?seed=${res.user.uid}`,
+                    role: 'user' // По умолчанию все пользователи
+                });
+            }
+        } catch (err) {
+            alert("Ошибка: " + err.message);
+        }
+    };
 
-    if (loading) return <div className="h-screen flex items-center justify-center font-black text-blue-500">SUPPORT.NET</div>;
+    if (loading) return <div className="h-screen flex items-center justify-center font-black text-blue-500 animate-pulse">SUPPORT.NET</div>;
 
-    if (!user) return <div className="h-screen flex items-center justify-center">
-        <button onClick={() => setView('auth')} className="bg-blue-600 p-10 rounded-3xl font-bold uppercase">Войти через форму (Разрабатывается)</button>
-    </div>;
+    // Если пользователь не вошел, показываем форму из components.js
+    if (!user) return <AuthForm onAuth={handleAuth} />;
 
     return (
         <div className="flex h-screen overflow-hidden">
